@@ -150,11 +150,11 @@ class Document(models.Model):
         elif self.project.is_type_of(Project.Seq2seq):
             return self.seq2seq_annotations.all()
 
-    def make_dataset(self):
+    def make_dataset(self, **kwargs):
         if self.project.is_type_of(Project.DOCUMENT_CLASSIFICATION):
             return self.make_dataset_for_classification()
         elif self.project.is_type_of(Project.SEQUENCE_LABELING):
-            return self.make_dataset_for_sequence_labeling()
+            return self.make_dataset_for_sequence_labeling(**kwargs)
         elif self.project.is_type_of(Project.Seq2seq):
             return self.make_dataset_for_seq2seq()
 
@@ -164,15 +164,22 @@ class Document(models.Model):
                    for a in annotations]
         return dataset
 
-    def make_dataset_for_sequence_labeling(self):
+    def make_dataset_for_sequence_labeling(self, **kwargs):
         annotations = self.get_annotations()
-        dataset = [[self.id, ch, 'O'] for ch in self.text]
-        for a in annotations:
-            for i in range(a.start_offset, a.end_offset):
-                if i == a.start_offset:
-                    dataset[i][2] = 'B-{}'.format(a.label.text)
-                else:
-                    dataset[i][2] = 'I-{}'.format(a.label.text)
+        export_format = kwargs.get("format", "BIO")
+        if export_format == "BIO":
+            dataset = [[self.id, ch, 'O'] for ch in self.text]
+            for a in annotations:
+                for i in range(a.start_offset, a.end_offset):
+                    if i == a.start_offset:
+                        dataset[i][2] = 'B-{}'.format(a.label.text)
+                    else:
+                        dataset[i][2] = 'I-{}'.format(a.label.text)
+        elif export_format == "spans":
+            ents = []
+            for a in annotations:
+                ents.append((a.start_offset, a.end_offset, a.label.text))
+            dataset = (self.text, {'entities': ents})
         return dataset
 
     def make_dataset_for_seq2seq(self):

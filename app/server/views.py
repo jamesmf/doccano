@@ -1,4 +1,5 @@
 import csv
+import json
 from io import TextIOWrapper
 
 from django.urls import reverse
@@ -71,14 +72,21 @@ class DataDownload(SuperUserMixin, LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         project_id = self.kwargs['project_id']
         project = get_object_or_404(Project, pk=project_id)
+        format_param = kwargs.get('format', 'BIO')
         docs = project.get_documents(is_null=False).distinct()
         filename = '_'.join(project.name.lower().split())
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="{}.csv"'.format(filename)
+        if format_param == "spans":
+            response = HttpResponse(json.dumps([d.make_dataset(format=format_param) for d in docs]),
+                                    content_type='application/json')
+            response['Content-Disposition'] = 'attachment; filename={}.json'.format(filename)
+            return response
+        else:
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename="{}.csv"'.format(filename)
 
-        writer = csv.writer(response)
-        for d in docs:
-            writer.writerows(d.make_dataset())
+            writer = csv.writer(response)
+            for d in docs:
+                writer.writerows(d.make_dataset(format=format_param))
 
         return response
 

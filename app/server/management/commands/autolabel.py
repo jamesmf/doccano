@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 from server.models import (Document, Project, Label,
                           SequenceAnnotation, User)
 import string
+import json
 
 # if we want to add new labels, decide on some new colors for them
 SOME_COLORS_TO_CHOOSE_FROM = ["#001f3f", "#0074D9", "#7FDBFF",
